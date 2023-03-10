@@ -1,2 +1,2 @@
 # flow-bot
-Discord bot that returns river flow information when requested.
+Discord bot that returns river flow information when called.
