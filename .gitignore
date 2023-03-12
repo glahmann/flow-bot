@@ -130,3 +130,6 @@ dmypy.json
 
 # vscode debug profiles
 .vscode/
+
+# river data dictionary
+river_data.py

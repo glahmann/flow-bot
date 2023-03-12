@@ -1,5 +1,9 @@
 FROM python:3.8
 
+ARG TOKEN
+
+ENV TOKEN=$TOKEN
+
 WORKDIR /flow-app
 
 COPY requirements.txt .
