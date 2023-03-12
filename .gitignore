@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vscode debug profiles
+.vscode/
+
+# river data dictionary
+river_data.py
