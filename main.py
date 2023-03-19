@@ -5,7 +5,6 @@ import json
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import requests
-# from river_data import RIVER_DICT
 
 intents = discord.Intents.default()
 intents.typing = False
