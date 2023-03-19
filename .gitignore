@@ -133,3 +133,6 @@ dmypy.json
 
 # river data dictionary
 river_data.py
+
+# credential files
+*credentials.json

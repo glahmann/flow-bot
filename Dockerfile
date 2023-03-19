@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY main.py .
-COPY river_data.py .
+COPY bot-credentials.json .
 
 # TODO get env variables
 CMD ["python", "./main.py"]
