@@ -3,8 +3,8 @@ import os
 import gspread
 import json
 import pandas as pd
-from oauth2client.service_account import ServiceAccountCredentials
 import requests
+from oauth2client.service_account import ServiceAccountCredentials
 
 intents = discord.Intents.default()
 intents.typing = False
