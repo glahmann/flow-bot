@@ -19,7 +19,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name('bot-credentials.
 g_client = gspread.authorize(credentials)
 
 # Open the spreadsheet
-worksheet =  g_client.open('pnw_wwc_db').worksheet('river_metadata')
+worksheet =  g_client.open(os.getenv('G_SPREADSHEET')).worksheet(os.getenv('G_WORKSHEET'))
 river_df = pd.DataFrame(worksheet.get_all_records())
 
 @client.event
@@ -64,4 +64,4 @@ async def on_message(message):
         else: 
             await message.channel.send(f'Sorry, {channel_name} is not yet supported by Flow Bot.')
 
-client.run(os.getenv('TOKEN'))
+client.run(os.getenv('BOT_TOKEN'))
