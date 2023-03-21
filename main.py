@@ -12,14 +12,16 @@ intents.presences = False
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-# Connect to Google Sheets
-scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('bot-credentials.json', scope)
-g_client = gspread.authorize(credentials)
+# NOTE: Sheets API has 60req/min limit at time of writing, may cause performance issue at scale
+def get_sheet(spreadsheet_name, worksheet_name):
+    # Connect to Google Sheets
+    scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('bot-credentials.json', scope)
+    g_client = gspread.authorize(credentials)
 
-# Open the spreadsheet
-worksheet =  g_client.open(os.getenv('G_SPREADSHEET')).worksheet(os.getenv('G_WORKSHEET'))
-river_df = pd.DataFrame(worksheet.get_all_records())
+    # Open the spreadsheet
+    worksheet =  g_client.open(spreadsheet_name).worksheet(worksheet_name)
+    return(worksheet.get_all_records())
 
 @client.event
 async def on_ready():
@@ -34,6 +36,7 @@ async def on_message(message):
     channel_id = message.channel.id
     if message.content.startswith('$flow'):
         print(channel_name)
+        river_df = pd.DataFrame(get_sheet(os.getenv('G_SPREADSHEET'), os.getenv('G_WORKSHEET')))
         river = river_df[river_df['discord_channel_id'] == channel_id]
         gage_site_id = river.iloc[0]['gage_site_id']
         gage_api_params = json.loads(river.iloc[0]['gage_api_parameters'])
