@@ -29,8 +29,8 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
 
 @bot.command(
-    help="Provides gage location, flow, and last sample datetime. Color adheres to AW range recommendation.",
-	brief="Provides current flow of the channel's river section."
+    help="Provides flow, most recent sample datetime, and gage location. \nColor adheres to AW range recommendation.",
+	brief="Provides current flow of a channel's river section."
 )
 async def flow(ctx):
     if ctx.author == ctx.bot.user:
@@ -44,6 +44,10 @@ async def flow(ctx):
     river = river_df[river_df['discord_channel_id'] == channel_id]
     gage_site_id = river.iloc[0]['gage_site_id']
     gage_api_params = json.loads(river.iloc[0]['gage_api_parameters'])
+    gage_type = river.iloc[0]['gage_type']
+    min_flow = river.iloc[0]['rec_min_flow']
+    max_flow = river.iloc[0]['rec_max_flow']
+    aw_link = river.iloc[0]['aw_url']
 
     if gage_site_id != '' and gage_site_id is not None: 
         base_url = river.iloc[0]['gage_api_url']
@@ -60,21 +64,25 @@ async def flow(ctx):
         flow_val = float(resp_selected['values'][0]['value'][0]['value'])
         last_updated = resp_selected['values'][0]['value'][0]['dateTime']
 
-        flow_status_emoji = '\U0001F7E2' # Green circle
+        embed_color = discord.Color.green()
         if flow_val < river.iloc[0]['rec_min_flow']:
-            flow_status_emoji = '\U0001F534' # Red circle
+            embed_color = discord.Color.red()
         elif flow_val > river.iloc[0]['rec_max_flow']:
-            flow_status_emoji = '\U0001F535' # Blue circle
+            embed_color = discord.Color.blue()
 
-        await ctx.channel.send(f'Hello {channel_name} boaters\nGage: {site_name}\nFlow: {flow_val} {flow_unit} {flow_status_emoji}\nUpdated: {last_updated}')
+        embed=discord.Embed(
+            title=f'Current Conditions', 
+            color=embed_color
+        )
+        embed.add_field(name='Flow', value=f'{flow_val} {flow_unit}', inline=True)
+        embed.add_field(name='Recommended', value=f'{min_flow}-{max_flow} {flow_unit}', inline=True)
+        embed.add_field(name='Updated', value=f'{last_updated}', inline=False)
+        embed.add_field(name='Gage', value=f'{site_name}', inline=False)
+        embed.add_field(name='Links', value=f'[American Whitewater]({aw_link})', inline=False)
+        embed.set_footer(text=f'Data sourced from {gage_type}.')
+
+        await ctx.channel.send(embed=embed)
     else: 
         await ctx.channel.send(f'Sorry, {channel_name} is not yet supported by Flow Bot.')
-
-    # TODO embed
-    # embed=discord.Embed(title="Sample Embed", \
-    #     url="https://realdrewdata.medium.com/", \
-    #     description="This is an embed that will show how to build an embed and the different components", \
-    #     color=**discord.Color.blue()**)
-    # await ctx.send(embed=embed)
 
 bot.run(os.getenv('BOT_TOKEN'))
