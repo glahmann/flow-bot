@@ -43,13 +43,19 @@ async def flow(ctx):
     river_df = pd.DataFrame(get_sheet(os.getenv('G_SPREADSHEET'), os.getenv('G_WORKSHEET')))
     river = river_df[river_df['discord_channel_id'] == channel_id]
     gage_site_id = river.iloc[0]['gage_site_id']
-    gage_api_params = json.loads(river.iloc[0]['gage_api_parameters'])
-    gage_type = river.iloc[0]['gage_type']
-    min_flow = river.iloc[0]['rec_min_flow']
-    max_flow = river.iloc[0]['rec_max_flow']
-    aw_link = river.iloc[0]['aw_url']
 
     if gage_site_id != '' and gage_site_id is not None: 
+        gage_api_params = json.loads(river.iloc[0]['gage_api_parameters'])
+        gage_type = river.iloc[0]['gage_type']
+        min_flow = river.iloc[0]['rec_min_flow']
+        max_flow = river.iloc[0]['rec_max_flow']
+        aw_link = river.iloc[0]['aw_url']
+        links_string = f'[American Whitewater]({aw_link})'
+
+        if river.iloc[0]['has_river_forecast'].lower() == 'true':
+            forecast_link = river.iloc[0]['river_forecast_url']
+            links_string += f'\n[Flow Forecast]({forecast_link})'
+
         base_url = river.iloc[0]['gage_api_url']
         params = { # TODO make params more flexible for different sources, these work with usgs only
             'format': 'json',
@@ -78,7 +84,7 @@ async def flow(ctx):
         embed.add_field(name='Recommended', value=f'{min_flow}-{max_flow} {flow_unit}', inline=True)
         embed.add_field(name='Updated', value=f'{last_updated}', inline=False)
         embed.add_field(name='Gage', value=f'{site_name}', inline=False)
-        embed.add_field(name='Links', value=f'[American Whitewater]({aw_link})', inline=False)
+        embed.add_field(name='Links', value=links_string, inline=False)
         embed.set_footer(text=f'Data sourced from {gage_type}.')
 
         await ctx.channel.send(embed=embed)
