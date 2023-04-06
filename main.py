@@ -1,9 +1,10 @@
 import discord
-import os
 import gspread
 import json
+import os
 import pandas as pd
 import requests
+from dateutil import parser
 from discord.ext import commands
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -51,6 +52,7 @@ async def flow(ctx):
         max_flow = river.iloc[0]['rec_max_flow']
         aw_link = river.iloc[0]['aw_url']
         links_string = f'[American Whitewater]({aw_link})'
+        flowplot_link = river.iloc[0]['flowplot_url']
 
         if river.iloc[0]['has_river_forecast'].lower() == 'true':
             forecast_link = river.iloc[0]['river_forecast_url']
@@ -68,7 +70,7 @@ async def flow(ctx):
         site_name = resp_selected['sourceInfo']['siteName']
         flow_unit = resp_selected['variable']['unit']['unitCode']
         flow_val = float(resp_selected['values'][0]['value'][0]['value'])
-        last_updated = resp_selected['values'][0]['value'][0]['dateTime']
+        last_updated = parser.parse(resp_selected['values'][0]['value'][0]['dateTime']).strftime('%Y-%m-%d %H:%M%Z')
 
         embed_color = discord.Color.green()
         if flow_val < river.iloc[0]['rec_min_flow']:
@@ -83,9 +85,12 @@ async def flow(ctx):
         embed.add_field(name='Flow', value=f'{flow_val} {flow_unit}', inline=True)
         embed.add_field(name='Recommended', value=f'{min_flow}-{max_flow} {flow_unit}', inline=True)
         embed.add_field(name='Updated', value=f'{last_updated}', inline=False)
-        embed.add_field(name='Gage', value=f'{site_name}', inline=False)
+        if flowplot_link == '':
+            embed.add_field(name='Gage', value=f'{site_name}', inline=False)
         embed.add_field(name='Links', value=links_string, inline=False)
-        embed.set_footer(text=f'Data sourced from {gage_type}.')
+        embed.set_footer(text=f'Current flow sourced from {gage_type}.')
+        if flowplot_link != '':
+            embed.set_image(url=flowplot_link)
 
         await ctx.channel.send(embed=embed)
     else: 
