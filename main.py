@@ -4,6 +4,7 @@ import json
 import os
 import pandas as pd
 import requests
+import time
 from dateutil import parser
 from discord.ext import commands
 from oauth2client.service_account import ServiceAccountCredentials
@@ -90,7 +91,8 @@ async def flow(ctx):
         embed.add_field(name='Links', value=links_string, inline=False)
         embed.set_footer(text=f'Current flow sourced from {gage_type}.')
         if flowplot_link != '':
-            embed.set_image(url=flowplot_link)
+            unix_time = int(time.time())
+            embed.set_image(url=f'{flowplot_link}&v={unix_time}') # This is NWRFC specific
 
         await ctx.channel.send(embed=embed)
     else: 
