@@ -10,7 +10,7 @@ from dateutil import parser
 from discord import app_commands
 from oauth2client.service_account import ServiceAccountCredentials
 
-MY_GUILD = discord.Object(id=1060601078573437008) # PNW Whitewater Chasers
+MY_GUILD = discord.Object(id=os.getenv('BOT_GUILD')) # PNW Whitewater Chasers
 
 @dataclass
 class RiverSegment:
@@ -23,11 +23,20 @@ class RiverSegment:
     site_links: str
     flowplot_link: str
 
+class MyClient(discord.Client):
+    def __init__(self):
+        super().__init__(intents=discord.Intents.default())
+        self.tree = app_commands.CommandTree(self)
 
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+    async def setup_hook(self):
+        self.tree.copy_global_to(guild=MY_GUILD)
+        await self.tree.sync(guild=MY_GUILD)
 
+client = MyClient()
+
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user}')
 
 # NOTE: Sheets API has 60req/min limit at time of writing, may cause performance issue at scale
 def get_gsheet(spreadsheet_name, worksheet_name):
@@ -90,12 +99,17 @@ def build_embed(river:RiverSegment, flow_val:float, flow_unit:str, last_updated:
 
 
 # TODO share parameter to make public response
-@tree.command(
+@client.tree.command(
     name = "flow", 
     description = "Provides current flow of a channel's river segment.", 
-    guild=MY_GUILD
 )
-async def flow(interaction:discord.Interaction):
+@app_commands.describe(share='Share this response with the channel?')
+@app_commands.choices(share=[
+    app_commands.Choice(name='Yes', value=0),
+    app_commands.Choice(name='No', value=1)
+])
+async def flow(interaction:discord.Interaction, share:app_commands.Choice[int]):
+    await interaction.response.defer(ephemeral=bool(share.value)) # Prevents errors from 3 second response limitation
     channel_name = interaction.channel.name
     channel_id = interaction.channel_id
 
@@ -103,13 +117,13 @@ async def flow(interaction:discord.Interaction):
     river_df = pd.DataFrame(get_gsheet(os.getenv('G_SPREADSHEET'), os.getenv('G_WORKSHEET')))
     river = river_df[river_df['discord_channel_id'] == channel_id] # TODO catch unknown channels here
     if river.size == 0: # Exit if no entry in database for channel
-        await interaction.response.send_message(f'Sorry, {channel_name} is not supported by Flow Bot.', ephemeral=True)
+        await interaction.followup.send(f'Sorry, {channel_name} is not supported by Flow Bot.')
         return
     
     try:
         river_seg = build_river(river)
     except:
-        await interaction.response.send_message(f'Sorry, {channel_name} is not yet supported by Flow Bot.', ephemeral=True)
+        await interaction.followup.send(f'Sorry, data is not yet available for {channel_name}.')
         return
     
     params = { # TODO make params more flexible for different sources, these work with usgs only
@@ -129,12 +143,6 @@ async def flow(interaction:discord.Interaction):
         resp_selected['sourceInfo']['siteName']
     )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@client.event
-async def on_ready():
-    await tree.sync(guild=MY_GUILD)
-    print(f'We have logged in as {client.user}')
+    await interaction.followup.send(embed=embed)
 
 client.run(os.getenv('BOT_TOKEN'))
